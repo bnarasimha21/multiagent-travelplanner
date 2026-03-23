@@ -1,0 +1,2 @@
+User should know he/she can access Dashboard
+Add logging with Supabase 

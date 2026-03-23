@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Agent Travel Planner</title>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.js"></script>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+                        <path d="M2 12h20"/>
+                    </svg>
+                    <h1>Multi-Agent Travel Planner</h1>
+                </div>
+                <p class="subtitle">AI-powered travel planning with parallel research agents</p>
+                <div class="header-actions">
+                    <div class="key-status" id="keyStatusBadge"></div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Search Section -->
+        <section class="search-section">
+            <div class="search-container">
+                <input
+                    type="text"
+                    id="queryInput"
+                    placeholder="Describe your trip... e.g., '2-week family trip to Japan with kids, interested in culture and food'"
+                    autocomplete="off"
+                >
+                <button id="planBtn" onclick="startPlanning()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/>
+                    </svg>
+                    Plan My Trip
+                </button>
+            </div>
+            <div class="example-queries">
+                <span>Try:</span>
+                <button class="example-btn" onclick="setQuery(this.textContent)">Weekend getaway to Paris for a couple</button>
+                <button class="example-btn" onclick="setQuery(this.textContent)">3-day adventure trip to New Zealand with hiking</button>
+            </div>
+        </section>
+
+        <!-- Tab Navigation (hidden until planning starts) -->
+        <nav class="tab-nav" id="tabNav" style="display:none;">
+            <button class="tab-btn active" data-tab="experience" onclick="switchTab('experience')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                </svg>
+                Trip Experience
+            </button>
+            <button class="tab-btn" data-tab="dashboard" onclick="switchTab('dashboard')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/>
+                </svg>
+                Agent Dashboard
+            </button>
+        </nav>
+
+        <!-- Tab: Trip Experience -->
+        <main class="tab-content trip-content" id="tab-experience" style="display:none;">
+            <!-- Progress Bar -->
+            <div class="progress-bar-container" id="progressBar">
+                <div class="progress-steps">
+                    <div class="progress-step active" id="step-analyzing">
+                        <div class="step-dot"></div>
+                        <span>Analyzing</span>
+                    </div>
+                    <div class="progress-line" id="line-1"></div>
+                    <div class="progress-step" id="step-researching">
+                        <div class="step-dot"></div>
+                        <span>Researching</span>
+                    </div>
+                    <div class="progress-line" id="line-2"></div>
+                    <div class="progress-step" id="step-building">
+                        <div class="step-dot"></div>
+                        <span>Building Itinerary</span>
+                    </div>
+                    <div class="progress-line" id="line-3"></div>
+                    <div class="progress-step" id="step-done">
+                        <div class="step-dot"></div>
+                        <span>Ready</span>
+                    </div>
+                </div>
+                <p class="progress-detail" id="progressDetail">Analyzing your travel query...</p>
+            </div>
+
+            <div class="experience-grid">
+                <!-- Left: Itinerary -->
+                <div class="experience-left">
+                    <div class="card" id="itineraryCard" style="display:none;">
+                        <div class="card-header">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>
+                            </svg>
+                            <h2>Your Itinerary</h2>
+                        </div>
+                        <div id="itineraryContent" class="itinerary-content"></div>
+                    </div>
+                </div>
+
+                <!-- Right: Map -->
+                <div class="experience-right">
+                    <div class="card map-card">
+                        <div class="card-header">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                <circle cx="12" cy="10" r="3"/>
+                            </svg>
+                            <h2>Trip Map</h2>
+                            <div class="map-legend" id="mapLegend"></div>
+                        </div>
+                        <div id="map" class="map-container"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Tab: Agent Dashboard -->
+        <main class="tab-content dashboard-content" id="tab-dashboard" style="display:none;">
+            <div class="dashboard-grid">
+                <!-- Left: Reasoning + Agents -->
+                <div class="dashboard-left">
+                    <div class="card" id="reasoningCard" style="display:none;">
+                        <div class="card-header">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/>
+                                <path d="M12 16v-4"/><path d="M12 8h.01"/>
+                            </svg>
+                            <h2>Orchestrator Reasoning</h2>
+                        </div>
+                        <p id="analysisText" class="analysis-text"></p>
+                    </div>
+
+                    <div class="card" id="agentsCard" style="display:none;">
+                        <div class="card-header">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="3" width="20" height="14" rx="2"/>
+                                <path d="M8 21h8"/><path d="M12 17v4"/>
+                            </svg>
+                            <h2>Parallel Agents</h2>
+                            <span class="agent-count" id="agentCount"></span>
+                        </div>
+                        <div id="agentsList" class="agents-list"></div>
+                    </div>
+                </div>
+
+                <!-- Right: Timing + Result -->
+                <div class="dashboard-right">
+                    <div class="card" id="timingCard" style="display:none;">
+                        <div class="card-header">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+                            </svg>
+                            <h2>Execution Timeline</h2>
+                        </div>
+                        <div id="timingContent" class="timing-content"></div>
+                    </div>
+
+                    <div class="card" id="resultSummaryCard" style="display:none;">
+                        <div class="card-header">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                <path d="M22 4L12 14.01l-3-3"/>
+                            </svg>
+                            <h2>Result</h2>
+                        </div>
+                        <div id="resultSummary" class="result-summary"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="loading-overlay" style="display:none;">
+            <div class="loading-spinner"></div>
+            <p id="loadingText">Initializing...</p>
+        </div>
+    </div>
+
+    <!-- BYOK Modal -->
+    <div id="byokModal" class="byok-overlay" style="display:none;">
+        <div class="byok-modal">
+            <button class="byok-close" onclick="hideByokModal()">&times;</button>
+            <div class="byok-header">
+                <span class="byok-label">FREE PLANS USED UP</span>
+                <h2>Bring Your Own Key</h2>
+                <p>You've used your 2 free plans. To keep planning, add your own API key. It's stored in your browser only, never sent to our servers.</p>
+            </div>
+            <div class="byok-provider">
+                <button class="byok-provider-btn active" data-provider="openai" onclick="selectByokProvider('openai')">OpenAI</button>
+                <button class="byok-provider-btn" data-provider="anthropic" onclick="selectByokProvider('anthropic')">Anthropic</button>
+                <button class="byok-provider-btn" data-provider="gemini" onclick="selectByokProvider('gemini')">Google Gemini</button>
+            </div>
+            <div class="byok-instructions">
+                <span class="byok-instructions-label">HOW TO GET A KEY</span>
+                <ol>
+                    <li>Go to <span id="byokProviderUrl">platform.openai.com</span></li>
+                    <li>Create an API key</li>
+                    <li>Paste it below</li>
+                </ol>
+            </div>
+            <div class="byok-input-row">
+                <input type="password" id="apiKeyInput" class="byok-input" placeholder="sk-..." autocomplete="off">
+                <button class="byok-submit" onclick="submitApiKey()">USE</button>
+            </div>
+            <p id="byokError" class="byok-error" style="display:none;"></p>
+            <p class="byok-footer">Your key is stored locally in your browser. It goes directly to the provider, we never store or log it.</p>
+        </div>
+    </div>
+
+    <script src="static/app.js"></script>
+    <script>
+        // Unified startPlanning: feeds events to BOTH views simultaneously
+        startPlanning = async function() {
+            const query = document.getElementById("queryInput").value.trim();
+            if (!query) return;
+
+            if (needsApiKey()) {
+                showByokModal();
+                return;
+            }
+
+            if (!getApiKey()) {
+                incrementUsage();
+                updateKeyStatus();
+            }
+
+            const btn = document.getElementById("planBtn");
+            btn.disabled = true;
+
+            // Reset all state
+            agentTimings = {};
+            clearMarkers();
+
+            // Show tabs and default to dashboard view
+            document.getElementById("tabNav").style.display = "flex";
+            switchTab("dashboard");
+
+            // Reset Trip Experience
+            document.getElementById("itineraryCard").style.display = "none";
+            document.getElementById("progressBar").style.display = "block";
+            setProgress("analyzing", "Analyzing your travel query...");
+
+            // Reset Agent Dashboard
+            document.getElementById("reasoningCard").style.display = "none";
+            document.getElementById("agentsCard").style.display = "none";
+            document.getElementById("timingCard").style.display = "none";
+            document.getElementById("resultSummaryCard").style.display = "none";
+            showLoading("Analyzing your travel query...");
+
+            const apiKey = getApiKey();
+            const planUrl = `api/plan?query=${encodeURIComponent(query)}${apiKey ? '&api_key=' + encodeURIComponent(apiKey) + '&provider=' + encodeURIComponent(getProvider()) : ''}`;
+            const eventSource = new EventSource(planUrl);
+            let planData = null;
+
+            eventSource.addEventListener("plan", (e) => {
+                const data = JSON.parse(e.data);
+                planData = data;
+                hideLoading();
+
+                // Dashboard: show reasoning + agent cards
+                renderReasoning(data);
+                renderAgentCards(data.tasks);
+
+                // Trip Experience: update progress + init map
+                setProgress("researching", `${data.tasks.length} agents researching in parallel...`);
+                initMap(data.destination);
+            });
+
+            eventSource.addEventListener("phase", (e) => {
+                const data = JSON.parse(e.data);
+                updateLoadingText(data.message);
+            });
+
+            eventSource.addEventListener("agent_start", (e) => {
+                const data = JSON.parse(e.data);
+                agentTimings[data.task_id] = { start: Date.now() };
+                setAgentStatus(data.task_id, "running");
+            });
+
+            eventSource.addEventListener("agent_complete", (e) => {
+                const data = JSON.parse(e.data);
+                if (agentTimings[data.task_id]) {
+                    agentTimings[data.task_id].end = Date.now();
+                    agentTimings[data.task_id].duration_ms = data.execution_time_ms;
+                }
+                setAgentStatus(data.task_id, "completed", data.execution_time_ms, data.summary);
+            });
+
+            eventSource.addEventListener("timing", (e) => {
+                const data = JSON.parse(e.data);
+
+                // Dashboard: render timing chart
+                renderTiming(data, planData);
+
+                // Trip Experience: update progress
+                setProgress("building", "Building your day-by-day itinerary...");
+                showItineraryGenerating();
+            });
+
+            eventSource.addEventListener("result", (e) => {
+                const data = JSON.parse(e.data);
+                btn.disabled = false;
+
+                // Trip Experience: render itinerary + map markers
+                setProgress("done", "Your trip is ready!");
+                renderItinerary(data.itinerary);
+                renderMapMarkers(data.markers, data.destination);
+                setTimeout(() => {
+                    document.getElementById("progressBar").style.display = "none";
+                }, 2000);
+
+                // Dashboard: show result summary
+                const card = document.getElementById("resultSummaryCard");
+                card.style.display = "block";
+                const itinerary = data.itinerary;
+                const timing = data.timing;
+                document.getElementById("resultSummary").innerHTML = `
+                    <div class="result-summary-content">
+                        <div class="result-title">${itinerary.title || "Trip Ready"}</div>
+                        <div class="result-desc">${itinerary.summary || ""}</div>
+                        ${itinerary.total_estimated_cost_usd ? `<div class="itinerary-cost">Estimated Total: $${itinerary.total_estimated_cost_usd.toLocaleString()}</div>` : ""}
+                        <div class="result-stats">
+                            <div class="result-stat">
+                                <span class="stat-value">${(itinerary.days || []).length}</span>
+                                <span class="stat-label">Days</span>
+                            </div>
+                            <div class="result-stat">
+                                <span class="stat-value">${timing.speedup_factor}x</span>
+                                <span class="stat-label">Speedup</span>
+                            </div>
+                            <div class="result-stat">
+                                <span class="stat-value">${(timing.total_ms / 1000).toFixed(1)}s</span>
+                                <span class="stat-label">Total Time</span>
+                            </div>
+                        </div>
+                        <button class="view-trip-btn" onclick="switchTab('experience')">
+                            View Trip Experience
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M5 12h14"/><path d="M12 5l7 7-7 7"/>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+
+                // Notify trip tab
+                notifyTab("experience");
+            });
+
+            eventSource.addEventListener("done", () => {
+                eventSource.close();
+                hideLoading();
+            });
+
+            eventSource.onerror = () => {
+                eventSource.close();
+                hideLoading();
+                btn.disabled = false;
+            };
+        };
+
+        function setProgress(step, detail) {
+            const steps = ["analyzing", "researching", "building", "done"];
+            const currentIdx = steps.indexOf(step);
+            steps.forEach((s, i) => {
+                const el = document.getElementById(`step-${s}`);
+                const line = document.getElementById(`line-${i}`);
+                if (i <= currentIdx) {
+                    el.classList.add("active");
+                    if (i < currentIdx) el.classList.add("completed");
+                    if (line) line.classList.add("active");
+                } else {
+                    el.classList.remove("active", "completed");
+                    if (line) line.classList.remove("active");
+                }
+            });
+            document.getElementById("progressDetail").textContent = detail;
+        }
+    </script>
+</body>
+</html>
