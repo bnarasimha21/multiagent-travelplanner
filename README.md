@@ -4,7 +4,7 @@ AI-powered travel planner that dynamically decomposes your query into parallel r
 
 **Live App:** [narasimha-badrinath.com/multiagent-travelplanner](https://narasimha-badrinath.com/multiagent-travelplanner/)
 
-**Read the article:** [Let the Model Decide: From Fixed Pipelines to Dynamic Agent Orchestration](https://github.com/bnarasimha21/my-articles/blob/main/articles/2026/multiagent-travelplanner/04-dynamic-multi-agent-pattern.md)
+**Read the article:** [Let the Model Decide: From Fixed Pipelines to Dynamic Agent Orchestration](https://www.linkedin.com/feed/update/urn:li:activity:7442131074467663872/)
 
 ## How It Works
 
