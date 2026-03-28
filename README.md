@@ -6,6 +6,14 @@ AI-powered travel planner that dynamically decomposes your query into parallel r
 
 **Read the article:** [Let the Model Decide: From Fixed Pipelines to Dynamic Agent Orchestration](https://www.linkedin.com/feed/update/urn:li:activity:7442131074467663872/)
 
+## Screenshots
+
+### Agent Dashboard
+![Agent Dashboard](screenshot-agents.png)
+
+### Trip Itinerary with Interactive Map
+![Trip Itinerary](screenshot-itinerary.png)
+
 ## How It Works
 
 The system runs in three phases:
