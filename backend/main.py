@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from sse_starlette.sse import EventSourceResponse
+from guardian_tap import attach_observer
 from orchestrator import Orchestrator
 from agent_runner import AgentRunner
 from usage_logger import log_usage
@@ -20,6 +21,7 @@ from usage_logger import log_usage
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 app = FastAPI(title="Multi-Agent Travel Planner")
+attach_observer(app)
 
 app.add_middleware(
     CORSMiddleware,
